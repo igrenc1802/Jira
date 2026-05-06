@@ -100,6 +100,7 @@ canvas{
     min-width:70px;
     text-align:center;
     user-select:none;
+    transition:.15s;
 }
 
 .slot{
@@ -111,6 +112,7 @@ canvas{
     justify-content:center;
     align-items:center;
     background:rgba(255,255,255,0.03);
+    transition:.15s;
 }
 
 button{
@@ -138,34 +140,21 @@ button{
     opacity:.4;
 }
 
-/* ===== MOBILE RESPONSIVE ===== */
+/* MOBILE */
 @media (max-width:600px){
-
     .container{max-width:100%;}
     .item{min-width:55px;padding:10px;font-size:12px;}
     .slot{width:55px;height:55px;}
     button{font-size:13px;padding:10px;}
 }
 
-/* ===== TOUCH ANIMATION ===== */
+/* TOUCH ANIMATION */
 .item:active{
     transform:scale(1.08);
-    transition:.15s;
 }
 
 .slot.active{
-    transform:scale(1.05);
-    border-color:#3b82f6;
-    box-shadow:0 0 12px rgba(59,130,246,.5);
-}
-
-.pop{
-    animation:pop .2s ease;
-}
-
-@keyframes pop{
-    0%{transform:scale(.8);opacity:.5}
-    100%{transform:scale(1);opacity:1}
+    transform:scale(1.06);
 }
 </style>
 </head>
@@ -204,7 +193,6 @@ button{
 
 <script>
 
-/* ================= STATE ================= */
 let state={
     level:1,
     max:5,
@@ -217,7 +205,6 @@ let state={
     timer:null
 };
 
-/* ================= INSTRUKSI ================= */
 function getInstruction(l){
     return {
         1:"🧩 LEVEL 1: urutkan dari kecil ke besar",
@@ -228,7 +215,6 @@ function getInstruction(l){
     }[l];
 }
 
-/* ================= DATA ================= */
 function gen(){
     const bank={
         1:[{t:"1/2",v:0.5},{t:"1/4",v:0.25},{t:"1/8",v:0.125}],
@@ -240,17 +226,8 @@ function gen(){
     return [...bank[state.level]].sort(()=>Math.random()-0.5);
 }
 
-/* ================= DOUBLE CLICK ================= */
-function bind(el){
-    el.ondblclick=()=>{
-        if(state.mode==="locked")return;
-        document.getElementById("items").appendChild(el);
-    };
-}
-
-/* ================= TIMER ================= */
+/* TIMER */
 function startTimer(){
-
     clearInterval(state.timer);
 
     state.mode="normal";
@@ -279,7 +256,7 @@ function startTimer(){
     },1000);
 }
 
-/* ================= INIT ================= */
+/* INIT */
 function init(){
 
     document.getElementById("level").innerText=state.level;
@@ -303,7 +280,6 @@ function init(){
 
         el.ondragstart=()=>state.drag=el;
 
-        bind(el);
         items.appendChild(el);
     });
 
@@ -331,7 +307,7 @@ function init(){
     startTimer();
 }
 
-/* ================= FIX CHECK BUG ================= */
+/* FIX CHECK BUG TOTAL */
 function check(){
 
     if(state.mode==="locked")return;
@@ -344,9 +320,14 @@ function check(){
         arr.push(c?parseFloat(c.dataset.v):null);
     });
 
-    /* ❗ FIX BUG UTAMA */
+    /* FIX CRITICAL */
+    if(arr.every(v=>v===null)){
+        document.getElementById("result").innerText="⚠️ belum ada jawaban!";
+        return;
+    }
+
     if(arr.includes(null)){
-        document.getElementById("result").innerText="⚠️ Isi semua slot dulu!";
+        document.getElementById("result").innerText="⚠️ isi semua slot!";
         return;
     }
 
@@ -363,7 +344,7 @@ function check(){
     }
 }
 
-/* ================= NEXT ================= */
+/* NEXT */
 function next(){
 
     if(!state.canNext){
@@ -385,28 +366,14 @@ function next(){
 
 init();
 
-/* ================= MOBILE TOUCH UX ================= */
-document.addEventListener("touchstart",(e)=>{
-
-    if(e.target.classList.contains("item")){
-        e.target.classList.add("pop");
-        setTimeout(()=>e.target.classList.remove("pop"),200);
-    }
-
-    if(e.target.classList.contains("slot")){
-        e.target.classList.add("active");
-        setTimeout(()=>e.target.classList.remove("active"),200);
-    }
-
-},{passive:true});
-
+/* MOBILE TOUCH SUPPORT */
 let touchItem=null;
 
 document.addEventListener("touchstart",(e)=>{
     if(e.target.classList.contains("item")){
         touchItem=e.target;
     }
-},{passive:true});
+});
 
 document.addEventListener("touchend",(e)=>{
 
@@ -415,24 +382,18 @@ document.addEventListener("touchend",(e)=>{
     let t=e.changedTouches[0];
     let el=document.elementFromPoint(t.clientX,t.clientY);
 
-    if(!el)return;
-
-    if(el.classList.contains("slot")){
+    if(el && el.classList.contains("slot")){
         if(el.firstChild){
             document.getElementById("items").appendChild(el.firstChild);
         }
         el.appendChild(touchItem);
     }
 
-    if(el.id==="items"){
-        el.appendChild(touchItem);
-    }
-
     touchItem=null;
 
-},{passive:true});
+});
 
-/* ================= BACKGROUND ================= */
+/* BACKGROUND */
 const c=document.getElementById("bg");
 const ctx=c.getContext("2d");
 
