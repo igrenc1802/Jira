@@ -7,6 +7,7 @@
 <title>Drag & Drop: Urutkan Pecahan</title>
 
 <style>
+/* ===== CSS TETAP ===== */
 *{
     margin:0;
     padding:0;
@@ -101,6 +102,7 @@ canvas{
     text-align:center;
     user-select:none;
     transition:.15s;
+    touch-action:manipulation;
 }
 
 .slot{
@@ -140,7 +142,6 @@ button{
     opacity:.4;
 }
 
-/* MOBILE */
 @media (max-width:600px){
     .container{max-width:100%;}
     .item{min-width:55px;padding:10px;font-size:12px;}
@@ -148,14 +149,8 @@ button{
     button{font-size:13px;padding:10px;}
 }
 
-/* TOUCH ANIMATION */
-.item:active{
-    transform:scale(1.08);
-}
-
-.slot.active{
-    transform:scale(1.06);
-}
+.item:active{transform:scale(1.08);}
+.slot.active{transform:scale(1.06);}
 </style>
 </head>
 
@@ -226,7 +221,6 @@ function gen(){
     return [...bank[state.level]].sort(()=>Math.random()-0.5);
 }
 
-/* TIMER */
 function startTimer(){
     clearInterval(state.timer);
 
@@ -256,7 +250,6 @@ function startTimer(){
     },1000);
 }
 
-/* INIT */
 function init(){
 
     document.getElementById("level").innerText=state.level;
@@ -307,7 +300,7 @@ function init(){
     startTimer();
 }
 
-/* FIX CHECK BUG TOTAL */
+/* ===== FIX CHECK BUG ===== */
 function check(){
 
     if(state.mode==="locked")return;
@@ -320,12 +313,13 @@ function check(){
         arr.push(c?parseFloat(c.dataset.v):null);
     });
 
-    /* FIX CRITICAL */
+    // FIX: kalau belum ada input sama sekali
     if(arr.every(v=>v===null)){
         document.getElementById("result").innerText="⚠️ belum ada jawaban!";
         return;
     }
 
+    // FIX: slot kosong
     if(arr.includes(null)){
         document.getElementById("result").innerText="⚠️ isi semua slot!";
         return;
@@ -344,7 +338,6 @@ function check(){
     }
 }
 
-/* NEXT */
 function next(){
 
     if(!state.canNext){
@@ -366,7 +359,26 @@ function next(){
 
 init();
 
-/* MOBILE TOUCH SUPPORT */
+/* ===== FIX DOUBLE TAP MOBILE ===== */
+let lastTap=0;
+
+document.addEventListener("touchstart",function(e){
+
+    if(!e.target.classList.contains("item"))return;
+
+    let now=Date.now();
+
+    if(now-lastTap<300){
+        document.getElementById("items").appendChild(e.target);
+        e.target.style.transform="scale(0.9)";
+        setTimeout(()=>e.target.style.transform="scale(1)",120);
+    }
+
+    lastTap=now;
+
+});
+
+/* MOBILE DRAG */
 let touchItem=null;
 
 document.addEventListener("touchstart",(e)=>{
@@ -390,49 +402,7 @@ document.addEventListener("touchend",(e)=>{
     }
 
     touchItem=null;
-
 });
-
-/* BACKGROUND */
-const c=document.getElementById("bg");
-const ctx=c.getContext("2d");
-
-c.width=innerWidth;
-c.height=innerHeight;
-
-let m=[];
-
-setInterval(()=>{
-    m.push({
-        x:Math.random()*c.width,
-        y:-10,
-        vx:-2,
-        vy:3+Math.random()*3,
-        life:120
-    });
-},120);
-
-function draw(){
-    ctx.fillStyle="#050816";
-    ctx.fillRect(0,0,c.width,c.height);
-
-    m.forEach((e,i)=>{
-        ctx.strokeStyle="rgba(255,255,255,0.8)";
-        ctx.beginPath();
-        ctx.moveTo(e.x,e.y);
-        ctx.lineTo(e.x+10,e.y-10);
-        ctx.stroke();
-
-        e.x+=e.vx;
-        e.y+=e.vy;
-        e.life--;
-
-        if(e.life<=0)m.splice(i,1);
-    });
-
-    requestAnimationFrame(draw);
-}
-draw();
 
 </script>
 
