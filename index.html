@@ -146,9 +146,7 @@ button{
     button{font-size:13px;padding:10px;}
 }
 
-.item:active{
-    transform:scale(1.08);
-}
+.item:active{transform:scale(1.08);}
 </style>
 </head>
 
@@ -267,18 +265,23 @@ function init(){
 
         el.ondragstart=()=>state.drag=el;
 
-        /* ================= FIX DOUBLE CLICK MOBILE ================= */
+        /* FIX DOUBLE TAP HP */
         let lastTap=0;
 
-        el.addEventListener("touchstart",function(){
+        el.addEventListener("touchstart",(e)=>{
             let now=Date.now();
 
-            if(now-lastTap < 300){
+            if(now-lastTap<300){
                 document.getElementById("items").appendChild(el);
             }
 
             lastTap=now;
-        },{passive:true});
+        });
+
+        /* FIX DESKTOP DOUBLE CLICK */
+        el.addEventListener("dblclick",()=>{
+            document.getElementById("items").appendChild(el);
+        });
 
         items.appendChild(el);
     });
@@ -307,28 +310,28 @@ function init(){
     startTimer();
 }
 
-/* FIX CHECK BUG (NO AUTO TRUE LAGI) */
+/* FIX CHECK TOTAL BUG */
 function check(){
 
     if(state.mode==="locked")return;
 
     let slots=document.querySelectorAll(".slot");
     let arr=[];
+    let filled=false;
 
     slots.forEach(s=>{
         let c=s.firstChild;
+        if(c) filled=true;
         arr.push(c?parseFloat(c.dataset.v):null);
     });
 
-    /* FIX: kalau belum isi semua */
-    if(arr.includes(null)){
-        document.getElementById("result").innerText="⚠️ isi semua slot dulu!";
+    if(!filled){
+        document.getElementById("result").innerText="⚠️ belum ada jawaban!";
         return;
     }
 
-    /* FIX: kalau kosong semua */
-    if(arr.every(v=>v===null)){
-        document.getElementById("result").innerText="⚠️ belum ada jawaban!";
+    if(arr.includes(null)){
+        document.getElementById("result").innerText="⚠️ isi semua slot!";
         return;
     }
 
@@ -345,7 +348,6 @@ function check(){
     }
 }
 
-/* NEXT */
 function next(){
 
     if(!state.canNext){
