@@ -7,7 +7,6 @@
 <title>Drag & Drop: Urutkan Pecahan</title>
 
 <style>
-/* ===== CSS TETAP ===== */
 *{
     margin:0;
     padding:0;
@@ -102,7 +101,6 @@ canvas{
     text-align:center;
     user-select:none;
     transition:.15s;
-    touch-action:manipulation;
 }
 
 .slot{
@@ -114,7 +112,6 @@ canvas{
     justify-content:center;
     align-items:center;
     background:rgba(255,255,255,0.03);
-    transition:.15s;
 }
 
 button{
@@ -149,8 +146,9 @@ button{
     button{font-size:13px;padding:10px;}
 }
 
-.item:active{transform:scale(1.08);}
-.slot.active{transform:scale(1.06);}
+.item:active{
+    transform:scale(1.08);
+}
 </style>
 </head>
 
@@ -221,6 +219,7 @@ function gen(){
     return [...bank[state.level]].sort(()=>Math.random()-0.5);
 }
 
+/* TIMER */
 function startTimer(){
     clearInterval(state.timer);
 
@@ -234,13 +233,7 @@ function startTimer(){
         document.getElementById("timerBar").style.width=
         (state.time/(30-state.level*2))*100+"%";
 
-        if(state.time<=0 && state.mode==="normal"){
-            state.mode="extra";
-            state.time=state.extraTime;
-            document.getElementById("result").innerText="⏳ Extra time!";
-        }
-
-        else if(state.time<=0 && state.mode==="extra"){
+        if(state.time<=0){
             state.mode="locked";
             clearInterval(state.timer);
             document.getElementById("result").innerText="🔒 waktu habis";
@@ -250,6 +243,7 @@ function startTimer(){
     },1000);
 }
 
+/* INIT */
 function init(){
 
     document.getElementById("level").innerText=state.level;
@@ -272,6 +266,19 @@ function init(){
         el.draggable=true;
 
         el.ondragstart=()=>state.drag=el;
+
+        /* ================= FIX DOUBLE CLICK MOBILE ================= */
+        let lastTap=0;
+
+        el.addEventListener("touchstart",function(){
+            let now=Date.now();
+
+            if(now-lastTap < 300){
+                document.getElementById("items").appendChild(el);
+            }
+
+            lastTap=now;
+        },{passive:true});
 
         items.appendChild(el);
     });
@@ -300,7 +307,7 @@ function init(){
     startTimer();
 }
 
-/* ===== FIX CHECK BUG ===== */
+/* FIX CHECK BUG (NO AUTO TRUE LAGI) */
 function check(){
 
     if(state.mode==="locked")return;
@@ -313,15 +320,15 @@ function check(){
         arr.push(c?parseFloat(c.dataset.v):null);
     });
 
-    // FIX: kalau belum ada input sama sekali
-    if(arr.every(v=>v===null)){
-        document.getElementById("result").innerText="⚠️ belum ada jawaban!";
+    /* FIX: kalau belum isi semua */
+    if(arr.includes(null)){
+        document.getElementById("result").innerText="⚠️ isi semua slot dulu!";
         return;
     }
 
-    // FIX: slot kosong
-    if(arr.includes(null)){
-        document.getElementById("result").innerText="⚠️ isi semua slot!";
+    /* FIX: kalau kosong semua */
+    if(arr.every(v=>v===null)){
+        document.getElementById("result").innerText="⚠️ belum ada jawaban!";
         return;
     }
 
@@ -338,6 +345,7 @@ function check(){
     }
 }
 
+/* NEXT */
 function next(){
 
     if(!state.canNext){
@@ -358,51 +366,6 @@ function next(){
 }
 
 init();
-
-/* ===== FIX DOUBLE TAP MOBILE ===== */
-let lastTap=0;
-
-document.addEventListener("touchstart",function(e){
-
-    if(!e.target.classList.contains("item"))return;
-
-    let now=Date.now();
-
-    if(now-lastTap<300){
-        document.getElementById("items").appendChild(e.target);
-        e.target.style.transform="scale(0.9)";
-        setTimeout(()=>e.target.style.transform="scale(1)",120);
-    }
-
-    lastTap=now;
-
-});
-
-/* MOBILE DRAG */
-let touchItem=null;
-
-document.addEventListener("touchstart",(e)=>{
-    if(e.target.classList.contains("item")){
-        touchItem=e.target;
-    }
-});
-
-document.addEventListener("touchend",(e)=>{
-
-    if(!touchItem)return;
-
-    let t=e.changedTouches[0];
-    let el=document.elementFromPoint(t.clientX,t.clientY);
-
-    if(el && el.classList.contains("slot")){
-        if(el.firstChild){
-            document.getElementById("items").appendChild(el.firstChild);
-        }
-        el.appendChild(touchItem);
-    }
-
-    touchItem=null;
-});
 
 </script>
 
