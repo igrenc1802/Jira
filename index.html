@@ -7,7 +7,6 @@
 <title>Drag & Drop: Urutkan Pecahan</title>
 
 <style>
-/* ======= CSS KAMU TETAP ======= */
 *{
     margin:0;
     padding:0;
@@ -137,6 +136,36 @@ button{
 .locked{
     pointer-events:none;
     opacity:.4;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width:600px){
+
+    .container{max-width:100%;}
+    .item{min-width:55px;padding:10px;font-size:12px;}
+    .slot{width:55px;height:55px;}
+    button{font-size:13px;padding:10px;}
+}
+
+/* ===== TOUCH ANIMATION ===== */
+.item:active{
+    transform:scale(1.08);
+    transition:.15s;
+}
+
+.slot.active{
+    transform:scale(1.05);
+    border-color:#3b82f6;
+    box-shadow:0 0 12px rgba(59,130,246,.5);
+}
+
+.pop{
+    animation:pop .2s ease;
+}
+
+@keyframes pop{
+    0%{transform:scale(.8);opacity:.5}
+    100%{transform:scale(1);opacity:1}
 }
 </style>
 </head>
@@ -287,7 +316,6 @@ function init(){
         s.ondrop=e=>{
             e.preventDefault();
             if(state.mode==="locked")return;
-
             if(!state.drag)return;
 
             if(s.firstChild){
@@ -303,7 +331,7 @@ function init(){
     startTimer();
 }
 
-/* ================= CHECK ================= */
+/* ================= FIX CHECK BUG ================= */
 function check(){
 
     if(state.mode==="locked")return;
@@ -315,6 +343,12 @@ function check(){
         let c=s.firstChild;
         arr.push(c?parseFloat(c.dataset.v):null);
     });
+
+    /* ❗ FIX BUG UTAMA */
+    if(arr.includes(null)){
+        document.getElementById("result").innerText="⚠️ Isi semua slot dulu!";
+        return;
+    }
 
     let sorted=[...arr].sort((a,b)=>a-b);
     let ok=arr.every((v,i)=>v===sorted[i]);
@@ -351,22 +385,35 @@ function next(){
 
 init();
 
-/* ================= MOBILE FIX (INI YANG PENTING) ================= */
+/* ================= MOBILE TOUCH UX ================= */
+document.addEventListener("touchstart",(e)=>{
+
+    if(e.target.classList.contains("item")){
+        e.target.classList.add("pop");
+        setTimeout(()=>e.target.classList.remove("pop"),200);
+    }
+
+    if(e.target.classList.contains("slot")){
+        e.target.classList.add("active");
+        setTimeout(()=>e.target.classList.remove("active"),200);
+    }
+
+},{passive:true});
+
 let touchItem=null;
 
-/* DRAG MANUAL MOBILE */
-document.addEventListener("touchstart",function(e){
+document.addEventListener("touchstart",(e)=>{
     if(e.target.classList.contains("item")){
         touchItem=e.target;
     }
 },{passive:true});
 
-document.addEventListener("touchend",function(e){
+document.addEventListener("touchend",(e)=>{
 
     if(!touchItem)return;
 
-    let touch=e.changedTouches[0];
-    let el=document.elementFromPoint(touch.clientX,touch.clientY);
+    let t=e.changedTouches[0];
+    let el=document.elementFromPoint(t.clientX,t.clientY);
 
     if(!el)return;
 
@@ -385,23 +432,46 @@ document.addEventListener("touchend",function(e){
 
 },{passive:true});
 
-/* DOUBLE TAP = DOUBLE CLICK */
-let lastTap=0;
+/* ================= BACKGROUND ================= */
+const c=document.getElementById("bg");
+const ctx=c.getContext("2d");
 
-document.addEventListener("touchstart",function(e){
+c.width=innerWidth;
+c.height=innerHeight;
 
-    let target=e.target;
-    if(!target.classList.contains("item"))return;
+let m=[];
 
-    let now=Date.now();
+setInterval(()=>{
+    m.push({
+        x:Math.random()*c.width,
+        y:-10,
+        vx:-2,
+        vy:3+Math.random()*3,
+        life:120
+    });
+},120);
 
-    if(now-lastTap<300){
-        document.getElementById("items").appendChild(target);
-    }
+function draw(){
+    ctx.fillStyle="#050816";
+    ctx.fillRect(0,0,c.width,c.height);
 
-    lastTap=now;
+    m.forEach((e,i)=>{
+        ctx.strokeStyle="rgba(255,255,255,0.8)";
+        ctx.beginPath();
+        ctx.moveTo(e.x,e.y);
+        ctx.lineTo(e.x+10,e.y-10);
+        ctx.stroke();
 
-});
+        e.x+=e.vx;
+        e.y+=e.vy;
+        e.life--;
+
+        if(e.life<=0)m.splice(i,1);
+    });
+
+    requestAnimationFrame(draw);
+}
+draw();
 
 </script>
 
