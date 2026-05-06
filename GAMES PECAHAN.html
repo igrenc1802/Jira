@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag & Drop: Urutkan Pecahan</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #050816;
+            overflow: hidden;
+            color: #fff;
+            padding: 16px;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 540px;
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            opacity: .9;
+            margin-bottom: 8px;
+        }
+
+        .timerWrap {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .timerBar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #22c55e, #3b82f6, #ef4444);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(16px);
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        #guide {
+            text-align: center;
+            font-size: 13px;
+            opacity: .95;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .item {
+            background: linear-gradient(135deg, #ffd60a, #ff9f1c);
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-weight: 900;
+            color: #1a1a1a;
+            cursor: grab;
+            min-width: 70px;
+            text-align: center;
+            user-select: none;
+        }
+
+        .slot {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 255, 255, 0.25);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        .green {
+            background: #22c55e;
+            color: #fff
+        }
+
+        .blue {
+            background: #3b82f6;
+            color: #fff
+        }
+
+        #result {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+
+        /* LOCK */
+        .locked {
+            pointer-events: none;
+            opacity: .4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="bg"></canvas>
+
+    <div class="container">
+
+        <div class="top">
+            <div>🎯 Level <b id="level">1</b></div>
+            <div>⭐ XP <b id="xp">0</b></div>
+        </div>
+
+        <div class="timerWrap">
+            <div class="timerBar" id="timerBar"></div>
+        </div>
+
+        <div class="card" id="gameBox">
+
+            <div class="title">Drag & Drop: Urutkan Pecahan</div>
+
+            <div id="guide"></div>
+
+            <div class="area" id="items"></div>
+            <div class="area" id="slots"></div>
+
+            <div id="result"></div>
+
+            <button class="green" onclick="check()">CHECK</button>
+            <button class="blue" onclick="next()">NEXT</button>
+
+        </div>
+    </div>
+
+    <script>
+
+        /* ================= STATE ================= */
+        let state = {
+            level: 1,
+            max: 5,
+            xp: 0,
+            drag: null,
+            canNext: false,
+            time: 30,
+            extraTime: 10,
+            mode: "normal",
+            timer: null
+        };
+
+        /* ================= INSTRUKSI ================= */
+        function getInstruction(l) {
+            return {
+                1: "🧩 LEVEL 1<br><b>Perintah:</b> Susun pecahan dari kecil ke besar",
+                2: "🧠 LEVEL 2<br><b>Perintah:</b> Urutkan pecahan campuran",
+                3: "⚖️ LEVEL 3<br><b>Perintah:</b> Urutkan pecahan senilai",
+                4: "🔥 LEVEL 4<br><b>Perintah:</b> Pecahan tricky",
+                5: "🏆 LEVEL 5<br><b>Perintah:</b> Final boss challenge"
+            }[l];
+        }
+
+        /* ================= DATA LEVEL ================= */
+        function gen() {
+            const bank = {
+                1: [
+                    { t: "1/2", v: 0.5 },
+                    { t: "1/4", v: 0.25 },
+                    { t: "1/8", v: 0.125 }
+                ],
+                2: [
+                    { t: "1/2", v: 0.5 },
+                    { t: "1/8", v: 0.125 },
+                    { t: "2/3", v: 2 / 3 },
+                    { t: "3/5", v: 3 / 5 },
+                    { t: "1/4", v: 0.25 },
+                    { t: "3/4", v: 0.75 }
+                ],
+                3: [
+                    { t: "1/2", v: 0.5 },
+                    { t: "2/4", v: 0.5 },
+                    { t: "3/6", v: 0.5 },
+                    { t: "1/3", v: 1 / 3 },
+                    { t: "2/3", v: 2 / 3 }
+                ],
+                4: [
+                    { t: "2/5", v: 2 / 5 },
+                    { t: "3/4", v: 3 / 4 },
+                    { t: "1/2", v: 1 / 2 },
+                    { t: "4/5", v: 4 / 5 },
+                    { t: "1/3", v: 1 / 3 }
+                ],
+                5: [
+                    { t: "5/6", v: 5 / 6 },
+                    { t: "2/3", v: 2 / 3 },
+                    { t: "3/8", v: 3 / 8 },
+                    { t: "4/7", v: 4 / 7 },
+                    { t: "1/2", v: 1 / 2 }
+                ]
+            };
+
+            return [...bank[state.level]].sort(() => Math.random() - 0.5);
+        }
+
+        /* ================= DOUBLE CLICK RETURN ================= */
+        function bind(el) {
+            el.ondblclick = () => {
+                if (state.mode === "locked") return;
+                document.getElementById("items").appendChild(el);
+            };
+        }
+
+        /* ================= TIMER ================= */
+        function startTimer() {
+
+            clearInterval(state.timer);
+
+            state.mode = "normal";
+            state.time = 30 - state.level * 2;
+
+            state.timer = setInterval(() => {
+
+                state.time--;
+
+                document.getElementById("timerBar").style.width =
+                    (state.time / (30 - state.level * 2)) * 100 + "%";
+
+                if (state.time <= 0 && state.mode === "normal") {
+                    state.mode = "extra";
+                    state.time = state.extraTime;
+                    document.getElementById("result").innerText = "⏳ Extra time aktif!";
+                }
+
+                else if (state.time <= 0 && state.mode === "extra") {
+                    state.mode = "locked";
+                    clearInterval(state.timer);
+                    document.getElementById("result").innerText = "🔒 Waktu habis total";
+                    document.getElementById("gameBox").classList.add("locked");
+                }
+
+            }, 1000);
+        }
+
+        /* ================= INIT ================= */
+        function init() {
+
+            document.getElementById("level").innerText = state.level;
+            document.getElementById("xp").innerText = state.xp;
+            document.getElementById("guide").innerHTML = getInstruction(state.level);
+
+            let items = document.getElementById("items");
+            let slots = document.getElementById("slots");
+
+            items.innerHTML = "";
+            slots.innerHTML = "";
+
+            let data = gen();
+
+            data.forEach(d => {
+                let el = document.createElement("div");
+                el.className = "item";
+                el.innerText = d.t;
+                el.dataset.v = d.v;
+                el.draggable = true;
+
+                el.ondragstart = () => state.drag = el;
+
+                bind(el);
+
+                items.appendChild(el);
+            });
+
+            data.forEach(() => {
+                let s = document.createElement("div");
+                s.className = "slot";
+
+                s.ondragover = e => e.preventDefault();
+
+                s.ondrop = e => {
+                    e.preventDefault();
+                    if (state.mode === "locked") return;
+
+                    if (!state.drag) return;
+
+                    if (s.firstChild) {
+                        document.getElementById("items").appendChild(s.firstChild);
+                    }
+
+                    s.appendChild(state.drag);
+                };
+
+                slots.appendChild(s);
+            });
+
+            startTimer();
+        }
+
+        /* ================= CHECK + XP SPEED ================= */
+        function check() {
+
+            if (state.mode === "locked") return;
+
+            let slots = document.querySelectorAll(".slot");
+            let arr = [];
+
+            slots.forEach(s => {
+                let c = s.firstChild;
+                arr.push(c ? parseFloat(c.dataset.v) : null);
+            });
+
+            let sorted = [...arr].sort((a, b) => a - b);
+            let ok = arr.every((v, i) => v === sorted[i]);
+
+            if (ok) {
+
+                let xpGain = 10 + Math.floor(state.time / 2);
+
+                state.xp += xpGain;
+
+                document.getElementById("xp").innerText = state.xp;
+
+                state.canNext = true;
+
+                document.getElementById("result").innerText = "🎉 Benar! +" + xpGain + " XP";
+
+            } else {
+                document.getElementById("result").innerText = "🧠 Coba lagi!";
+            }
+        }
+
+        /* ================= NEXT ================= */
+        function next() {
+
+            if (!state.canNext) {
+                document.getElementById("result").innerText = "Jawab benar dulu";
+                return;
+            }
+
+            state.level++;
+
+            if (state.level > state.max) {
+                alert("🎉 Semua level selesai!");
+                location.reload();
+                return;
+            }
+
+            state.canNext = false;
+            init();
+        }
+
+        /* START */
+        init();
+
+        /* ================= METEOR BACKGROUND ================= */
+        const c = document.getElementById("bg");
+        const ctx = c.getContext("2d");
+
+        c.width = innerWidth;
+        c.height = innerHeight;
+
+        let m = [];
+
+        setInterval(() => {
+            m.push({
+                x: Math.random() * c.width,
+                y: -10,
+                vx: -2,
+                vy: 3 + Math.random() * 3,
+                life: 120
+            });
+        }, 120);
+
+        function draw() {
+            ctx.fillStyle = "#050816";
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            m.forEach((e, i) => {
+                ctx.strokeStyle = "rgba(255,255,255,0.8)";
+                ctx.beginPath();
+                ctx.moveTo(e.x, e.y);
+                ctx.lineTo(e.x + 10, e.y - 10);
+                ctx.stroke();
+
+                e.x += e.vx;
+                e.y += e.vy;
+                e.life--;
+
+                if (e.life <= 0) m.splice(i, 1);
+            });
+
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+    </script>
+
+</body>
+
+</html>
