@@ -265,19 +265,10 @@ function init(){
 
         el.ondragstart=()=>state.drag=el;
 
-        /* ===== FIX DOUBLE TAP MOBILE ===== */
-        let lastTap=0;
-        el.addEventListener("touchend",()=>{
-            let now=Date.now();
-
-            if(now-lastTap<300){
-                // double tap = cancel balik ke item list
-                document.getElementById("items").appendChild(el);
-                state.drag=null;
-            }
-
-            lastTap=now;
-        },{passive:true});
+        // FIX MOBILE TAP MOVE (replace double tap bug)
+        el.addEventListener("touchstart",(e)=>{
+            state.drag=el;
+        });
 
         items.appendChild(el);
     });
@@ -298,8 +289,18 @@ function init(){
             }
 
             s.appendChild(state.drag);
-            state.drag=null;
         };
+
+        // FIX TAP DROP MOBILE
+        s.addEventListener("touchend",(e)=>{
+            if(state.drag){
+                if(s.firstChild){
+                    document.getElementById("items").appendChild(s.firstChild);
+                }
+                s.appendChild(state.drag);
+                state.drag=null;
+            }
+        });
 
         slots.appendChild(s);
     });
@@ -307,13 +308,14 @@ function init(){
     startTimer();
 }
 
-/* FIX CHECK BUG */
+/* FIX CHECK BUG TOTAL */
 function check(){
 
     if(state.mode==="locked")return;
 
     let slots=document.querySelectorAll(".slot");
     let arr=[];
+
     let filled=false;
 
     slots.forEach(s=>{
@@ -322,6 +324,7 @@ function check(){
         arr.push(c?parseFloat(c.dataset.v):null);
     });
 
+    // ❗ FIX: kalau kosong semua
     if(!filled){
         document.getElementById("result").innerText="⚠️ belum ada jawaban!";
         return;
