@@ -219,7 +219,6 @@ function gen(){
     return [...bank[state.level]].sort(()=>Math.random()-0.5);
 }
 
-/* TIMER */
 function startTimer(){
     clearInterval(state.timer);
 
@@ -243,7 +242,6 @@ function startTimer(){
     },1000);
 }
 
-/* INIT */
 function init(){
 
     state.drag=null;
@@ -261,6 +259,7 @@ function init(){
 
     let data=gen();
 
+    /* ITEMS */
     data.forEach(d=>{
         let el=document.createElement("div");
         el.className="item";
@@ -268,10 +267,10 @@ function init(){
         el.dataset.v=d.v;
         el.draggable=true;
 
-        /* DESKTOP */
+        /* PC DRAG */
         el.ondragstart=()=>state.drag=el;
 
-        /* MOBILE FIX (ANTI BUG + ANTI DOUBLE TAP ERROR) */
+        /* FIX MOBILE START */
         el.addEventListener("touchstart",(e)=>{
             state.drag=el;
         },{passive:true});
@@ -279,6 +278,7 @@ function init(){
         items.appendChild(el);
     });
 
+    /* SLOTS */
     data.forEach(()=>{
 
         let s=document.createElement("div");
@@ -288,6 +288,7 @@ function init(){
 
         s.ondrop=e=>{
             e.preventDefault();
+
             if(state.mode==="locked")return;
             if(!state.drag)return;
 
@@ -299,8 +300,9 @@ function init(){
             state.drag=null;
         };
 
-        /* MOBILE DROP FIX */
-        s.addEventListener("touchend",()=>{
+        /* 🔥 FIX MOBILE DROP FULL WORK */
+        s.addEventListener("touchend",(e)=>{
+
             if(state.mode==="locked")return;
             if(!state.drag)return;
 
@@ -310,6 +312,7 @@ function init(){
 
             s.appendChild(state.drag);
             state.drag=null;
+
         });
 
         slots.appendChild(s);
@@ -318,7 +321,6 @@ function init(){
     startTimer();
 }
 
-/* CHECK FIX TOTAL BUG */
 function check(){
 
     if(state.mode==="locked")return;
@@ -356,7 +358,6 @@ function check(){
     }
 }
 
-/* NEXT */
 function next(){
 
     if(!state.canNext){
