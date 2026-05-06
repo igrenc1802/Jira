@@ -219,6 +219,7 @@ function gen(){
     return [...bank[state.level]].sort(()=>Math.random()-0.5);
 }
 
+/* TIMER */
 function startTimer(){
     clearInterval(state.timer);
 
@@ -242,7 +243,11 @@ function startTimer(){
     },1000);
 }
 
+/* INIT */
 function init(){
+
+    state.drag=null;
+    state.canNext=false;
 
     document.getElementById("level").innerText=state.level;
     document.getElementById("xp").innerText=state.xp;
@@ -263,17 +268,19 @@ function init(){
         el.dataset.v=d.v;
         el.draggable=true;
 
+        /* DESKTOP */
         el.ondragstart=()=>state.drag=el;
 
-        // FIX MOBILE TAP MOVE (replace double tap bug)
+        /* MOBILE FIX (ANTI BUG + ANTI DOUBLE TAP ERROR) */
         el.addEventListener("touchstart",(e)=>{
             state.drag=el;
-        });
+        },{passive:true});
 
         items.appendChild(el);
     });
 
     data.forEach(()=>{
+
         let s=document.createElement("div");
         s.className="slot";
 
@@ -289,17 +296,20 @@ function init(){
             }
 
             s.appendChild(state.drag);
+            state.drag=null;
         };
 
-        // FIX TAP DROP MOBILE
-        s.addEventListener("touchend",(e)=>{
-            if(state.drag){
-                if(s.firstChild){
-                    document.getElementById("items").appendChild(s.firstChild);
-                }
-                s.appendChild(state.drag);
-                state.drag=null;
+        /* MOBILE DROP FIX */
+        s.addEventListener("touchend",()=>{
+            if(state.mode==="locked")return;
+            if(!state.drag)return;
+
+            if(s.firstChild){
+                document.getElementById("items").appendChild(s.firstChild);
             }
+
+            s.appendChild(state.drag);
+            state.drag=null;
         });
 
         slots.appendChild(s);
@@ -308,14 +318,13 @@ function init(){
     startTimer();
 }
 
-/* FIX CHECK BUG TOTAL */
+/* CHECK FIX TOTAL BUG */
 function check(){
 
     if(state.mode==="locked")return;
 
     let slots=document.querySelectorAll(".slot");
     let arr=[];
-
     let filled=false;
 
     slots.forEach(s=>{
@@ -324,7 +333,6 @@ function check(){
         arr.push(c?parseFloat(c.dataset.v):null);
     });
 
-    // ❗ FIX: kalau kosong semua
     if(!filled){
         document.getElementById("result").innerText="⚠️ belum ada jawaban!";
         return;
@@ -348,6 +356,7 @@ function check(){
     }
 }
 
+/* NEXT */
 function next(){
 
     if(!state.canNext){
@@ -363,7 +372,6 @@ function next(){
         return;
     }
 
-    state.canNext=false;
     init();
 }
 
