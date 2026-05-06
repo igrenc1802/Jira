@@ -146,7 +146,9 @@ button{
     button{font-size:13px;padding:10px;}
 }
 
-.item:active{transform:scale(1.08);}
+.item:active{
+    transform:scale(1.08);
+}
 </style>
 </head>
 
@@ -217,7 +219,6 @@ function gen(){
     return [...bank[state.level]].sort(()=>Math.random()-0.5);
 }
 
-/* TIMER */
 function startTimer(){
     clearInterval(state.timer);
 
@@ -241,7 +242,6 @@ function startTimer(){
     },1000);
 }
 
-/* INIT */
 function init(){
 
     document.getElementById("level").innerText=state.level;
@@ -265,23 +265,19 @@ function init(){
 
         el.ondragstart=()=>state.drag=el;
 
-        /* FIX DOUBLE TAP HP */
+        /* ===== FIX DOUBLE TAP MOBILE ===== */
         let lastTap=0;
-
-        el.addEventListener("touchstart",(e)=>{
+        el.addEventListener("touchend",()=>{
             let now=Date.now();
 
             if(now-lastTap<300){
+                // double tap = cancel balik ke item list
                 document.getElementById("items").appendChild(el);
+                state.drag=null;
             }
 
             lastTap=now;
-        });
-
-        /* FIX DESKTOP DOUBLE CLICK */
-        el.addEventListener("dblclick",()=>{
-            document.getElementById("items").appendChild(el);
-        });
+        },{passive:true});
 
         items.appendChild(el);
     });
@@ -302,6 +298,7 @@ function init(){
             }
 
             s.appendChild(state.drag);
+            state.drag=null;
         };
 
         slots.appendChild(s);
@@ -310,7 +307,7 @@ function init(){
     startTimer();
 }
 
-/* FIX CHECK TOTAL BUG */
+/* FIX CHECK BUG */
 function check(){
 
     if(state.mode==="locked")return;
